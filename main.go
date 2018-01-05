@@ -13,6 +13,7 @@ import (
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/orders", orders.OrdersHandler)
+	r.HandleFunc("/orderstatus/{orderid}", orders.OrderStatusHandler)
 	http.Handle("/", r)
 
 	fs := http.FileServer(http.Dir("static"))

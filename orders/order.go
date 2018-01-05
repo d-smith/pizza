@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 )
 
-var templates = template.Must(template.ParseFiles("./orders/orders.html"))
+var templates = template.Must(template.ParseFiles("./orders/orders.html", "./orders/orderstatus.html"))
 var awsSession = session.Must(session.NewSession())
 var modelInstanceTable =os.Getenv("MODEL_INSTANCE_TABLE")
 var ddb = dynamodb.New(awsSession)
@@ -42,6 +42,12 @@ func OrdersHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := templates.ExecuteTemplate(rw, "orders.html", orders); err != nil {
+		respondError(rw, http.StatusInternalServerError, err)
+	}
+}
+
+func OrderStatusHandler(rw http.ResponseWriter, req *http.Request) {
+	if err := templates.ExecuteTemplate(rw, "orderstatus.html", nil); err != nil {
 		respondError(rw, http.StatusInternalServerError, err)
 	}
 }
