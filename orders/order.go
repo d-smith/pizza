@@ -4,9 +4,17 @@ import (
 	"net/http"
 	"html/template"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"os"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 var templates = template.Must(template.ParseFiles("./orders/orders.html"))
+var awsSession = session.Must(session.NewSession())
+var modelInstanceTable =os.Getenv("MODEL_INSTANCE_TABLE")
+var ddb = dynamodb.New(awsSession)
+
 
 type ErrorResponse struct {
 	Errors []string `json:"errors"`
@@ -40,5 +48,33 @@ func OrdersHandler(rw http.ResponseWriter, req *http.Request) {
 
 
 func getOrders() ([]string, error) {
-	return []string{"xxxxx-yyyy-zzzzzzzz"}, nil
+
+	resultsLimit := int64(50)
+	input := &dynamodb.ScanInput{
+		ExpressionAttributeNames: map[string]*string{
+			"#ST": aws.String("state"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":s": {
+				S: aws.String("OrderReceived"),
+			},
+		},
+		FilterExpression:     aws.String("#ST = :s"),
+		TableName:            aws.String(modelInstanceTable),
+		Limit: &resultsLimit,
+	}
+
+	qout, err := ddb.Scan(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var orders []string
+
+	items := qout.Items
+	for _, item := range items {
+		orders = append(orders, *item["instanceId"].S)
+	}
+
+	return orders, nil
 }

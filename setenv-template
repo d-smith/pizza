@@ -1,3 +1,4 @@
 export http_proxy=
 export AWS_PROFILE=
 export AWS_REGION=
+export MODEL_INSTANCE_TABLE=
