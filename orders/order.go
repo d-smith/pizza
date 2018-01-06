@@ -8,6 +8,7 @@ import (
 	"os"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/gorilla/mux"
 )
 
 var templates = template.Must(template.ParseFiles("./orders/orders.html", "./orders/orderstatus.html"))
@@ -47,9 +48,72 @@ func OrdersHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func OrderStatusHandler(rw http.ResponseWriter, req *http.Request) {
-	if err := templates.ExecuteTemplate(rw, "orderstatus.html", nil); err != nil {
+	vars := mux.Vars(req)
+	order,  err := getOrderStatus(vars["orderid"])
+	if err != nil {
+		respondError(rw, http.StatusInternalServerError, err)
+		return
+	}
+
+	statusDetail := orderStatusFromTxns(order)
+
+	if err = templates.ExecuteTemplate(rw, "orderstatus.html", statusDetail); err != nil {
 		respondError(rw, http.StatusInternalServerError, err)
 	}
+}
+
+func getOrderStatus(order string)(map[string]string, error) {
+	input := &dynamodb.QueryInput{
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":iid": {
+				S: aws.String(order),
+			},
+		},
+		KeyConditionExpression: aws.String("instanceId = :iid"),
+		TableName:              aws.String(modelInstanceTable),
+	}
+
+	qout, err := ddb.Query(input)
+	if err != nil {
+		return nil, err
+	}
+
+	orderTxns := make(map[string]string)
+	items := qout.Items
+	for _, item := range items {
+		orderTxns[*item["state"].S] = *item["txnId"].S
+	}
+
+	return orderTxns, nil
+}
+
+type orderStepState struct {
+	Step string
+	Status string
+}
+
+func orderStatusFromTxns(order map[string]string) []orderStepState {
+	states := []orderStepState{}
+
+	steps := []string{"OrderReceived","AssemblingPizza","CookingPizza","OrderReady"}
+	for _, step := range steps {
+		txn := order[step]
+		switch txn {
+		case "":
+			states = append(states, orderStepState{
+				Step: step,
+				Status: "",
+			})
+		default:
+			states = append(states, orderStepState{
+				Step: step,
+				Status: "is-complete",
+			})
+		}
+	}
+
+	return states
+
 }
 
 
