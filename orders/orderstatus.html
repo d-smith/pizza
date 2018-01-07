@@ -11,13 +11,16 @@
         <h2>Order Status</h2>
 
 
-        <ul class="progress-tracker progress-tracker--word">
+        <ul class="progress-tracker progress-tracker--text">
             {{ range . }}
             <li class="progress-step {{.Status}}">
                 <span class="progress-marker"></span>
+
                 <span class="progress-text">
-                              <p class="progress-title">{{ .Step }}</p>
-                            </span>
+                 <h4 class="progress-title"></h4>
+                {{ .Step }}
+                </span>
+
             </li>
             {{ end }}
         </ul>
