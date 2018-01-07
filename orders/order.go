@@ -95,7 +95,7 @@ type orderStepState struct {
 func orderStatusFromTxns(order map[string]string) []orderStepState {
 	states := []orderStepState{}
 
-	steps := []string{"OrderReceived","AssemblingPizza","CookingPizza","OrderReady"}
+	steps := []string{"OrderReceived","AssemblingPizza","CookingPizza","PizzaReady"}
 	for _, step := range steps {
 		txn := order[step]
 		switch txn {
